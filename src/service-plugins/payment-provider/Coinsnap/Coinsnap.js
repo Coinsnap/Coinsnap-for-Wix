@@ -9,7 +9,7 @@ import { elevate } from "wix-auth";
  * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').ConnectAccountResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
  */
 export const connectAccount = async (options, context) => {
-  let sUrl = "https://app.coinsnap.io/";
+  let sUrl = "https://app.coinsnap.io";
   sUrl += sUrl.endsWith("/") ? "" : "/";
   // let returnObj = {
   //   credentials: options.credentials,
@@ -129,17 +129,17 @@ export const createTransaction = async (options, context) => {
     },
   );
 
-  if (response.ok) {
-    const json = await response.json();
+  if (!response.ok) {
     return {
-      pluginTransactionId: json.id,
-      redirectUrl: json.checkoutLink,
+      errorCode: response.status,
+      errorMessage: `Payment creation failed: ${response.statusText}`,
+      reasonCode: 2001,
     };
   }
+  const json = await response.json();
   return {
-    errorCode: response.status,
-    errorMessage: `Payment creation failed: ${response.statusText}`,
-    reasonCode: 2001,
+    pluginTransactionId: json.id,
+    redirectUrl: json.checkoutLink,
   };
 };
 
