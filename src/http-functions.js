@@ -2,8 +2,7 @@ import wixPaymentProviderBackend from "wix-payment-provider-backend";
 import { ok, badRequest } from "wix-http-functions";
 import { createHmac, timingSafeEqual } from "crypto";
 
-// An endpoint for receiving updates about transactions.
-export async function postCoinsnapWebhook(request) {
+export async function post_coinsnap_webhook(request) {
   const req = await request.body.json();
 
   const validTypes = [
