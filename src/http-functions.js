@@ -1,6 +1,6 @@
 import wixPaymentProviderBackend from "wix-payment-provider-backend";
 import { ok, badRequest } from "wix-http-functions";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 // An endpoint for receiving updates about transactions.
 export async function postCoinsnapWebhook(request) {

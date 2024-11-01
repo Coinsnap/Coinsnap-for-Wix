@@ -19,7 +19,7 @@ export const connectAccount = async (options, context) => {
     {
       method: "get",
       headers: {
-        Authorization: "token " + options.credentials.apiKey,
+        Authorization: "x-api-key " + options.credentials.apiKey,
       },
     },
   );
