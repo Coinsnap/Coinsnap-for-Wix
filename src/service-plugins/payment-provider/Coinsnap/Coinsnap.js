@@ -11,9 +11,9 @@ import { elevate } from "wix-auth";
 export const connectAccount = async (options, context) => {
   let sUrl = "https://app.coinsnap.io/";
   sUrl += sUrl.endsWith("/") ? "" : "/";
-  let returnObj = {
-    credentials: options.credentials,
-  };
+  // let returnObj = {
+  //   credentials: options.credentials,
+  // };
   const response = await fetch(
     sUrl + "api/v1/stores/" + options.credentials.storeId,
     {
@@ -24,23 +24,72 @@ export const connectAccount = async (options, context) => {
     },
   );
 
-  if (response.status == 200) {
-    returnObj.accountId = "myId";
-    returnObj.accountName = "CoinsnapAccount";
-  } else {
-    returnObj.errorCode = response.status;
-    returnObj.errorMessage = "Error during connection with Coinsnap";
-    returnObj.reasonCode = 1002;
+  if (!response.ok) {
+    return {
+      errorCode: response.status,
+      errorMessage: "Error during connection with Coinsnap",
+      reasonCode: 1002,
+    };
   }
-  return returnObj;
+  return {
+    credentials: options.credentials,
+    accountId: "myId",
+    accountName: "CoinsnapAccount",
+  };
 };
 
 /**
- * This payment plugin endpoint is triggered when a buyer pays on a Wix site.
- * The plugin has to process this payment request but prevent double payments for the same `wixTransactionId`.
+ * Creates a payment transaction for a Wix e-commerce order
+ *
+ * @description
+ * This endpoint is critical for processing payments in the Wix payment flow:
+ * - Initializes a new payment transaction
+ * - Prevents duplicate transactions using `wixTransactionId`
+ * - Handles payment creation across different payment providers
+ *
+ * @workflow
+ * 1. Receive payment request from Wix
+ * 2. Validate transaction details
+ * 3. Create transaction with payment provider
+ * 4. Return transaction details or error
+ *
+ * @security
+ * - Ensures idempotency to prevent double-charging
+ * - Uses unique transaction identifiers
+ * - Validates all incoming payment requests
+ *
  * @param {import('interfaces-psp-v1-payment-service-provider').CreateTransactionOptions} options
+ * @property {Object} options.order - Complete order information
+ * @property {Object} options.merchantCredentials - Payment provider credentials
+ * @property {string} options.wixTransactionId - Unique Wix transaction identifier
+ *
  * @param {import('interfaces-psp-v1-payment-service-provider').Context} context
- * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').CreateTransactionResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
+ * @property {Object} context.site - Site-specific information
+ * @property {string} context.environment - Current execution environment
+ *
+ * @returns {Promise
+ *   import('interfaces-psp-v1-payment-service-provider').CreateTransactionResponse |
+ *   import('interfaces-psp-v1-payment-service-provider').BusinessError
+ * >} Transaction result or error
+ *
+ * @example
+ * // Successful transaction response
+ * {
+ *   pluginTransactionId: "coinsnap_invoice_123",
+ *   redirectUrl: "https://payment.provider/checkout/abc123"
+ * }
+ *
+ * @example
+ * // Error response
+ * {
+ *   errorCode: "PAYMENT_FAILED",
+ *   errorMessage: "Unable to create transaction",
+ *   reasonCode: 2001
+ * }
+ *
+ * @throws {BusinessError} When transaction creation fails
+ *
+ * @see {@link https://dev.wix.com/docs/payment-integration Wix Payment Integration Docs}
  */
 export const createTransaction = async (options, context) => {
   let sUrl = options.merchantCredentials.btcpayUrl;
@@ -89,7 +138,7 @@ export const createTransaction = async (options, context) => {
   }
   return {
     errorCode: response.status,
-    errorMessage: "Error Coinsnap payment",
+    errorMessage: `Payment creation failed: ${response.statusText}`,
     reasonCode: 2001,
   };
 };
