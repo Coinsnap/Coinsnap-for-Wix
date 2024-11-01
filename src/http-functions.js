@@ -9,8 +9,6 @@ export async function postCoinsnapWebhook(request) {
   const validTypes = [
     "InvoiceProcessing",
     "InvoiceSettled",
-    "InvoiceReceivedPayment",
-    "InvoicePaymentSettled",
     "InvoiceExpired",
     "InvoiceInvalid",
   ];
@@ -20,10 +18,8 @@ export async function postCoinsnapWebhook(request) {
 
   let rawBody = await request.body.text();
 
-  const headerBtcPaySecret = request.headers["x-coinsnap-sig"].split("=")[1];
-  if (
-    !checkSecretKey(req.metadata.wixAdditionalId, rawBody, headerBtcPaySecret)
-  ) {
+  const secret = request.headers["x-coinsnap-sig"].split("=")[1];
+  if (!checkSecretKey(req.metadata.wixAdditionalId, rawBody, secret)) {
     return badRequest();
   }
 
@@ -57,16 +53,52 @@ export async function postCoinsnapWebhook(request) {
   return ok();
 }
 
+// function checkSecretKey(key, message, signature) {
+//   const hmac = createHmac("sha256", key);
+//   hmac.update(message);
+//   return hmac.digest("hex") === signature;
+//   // const hashBytes = hmac.digest();
+//   //
+//   // let hashString = '';
+//   // for (const byte of hashBytes) {
+//   //   hashString += ('0' + byte.toString(16)).slice(-2);
+//   // }
+//   //
+//   // return hashString === signature;
+// }
 function checkSecretKey(key, message, signature) {
+  // Input validation
+  if (!key || !message || !signature) {
+    console.warn("Invalid input: Missing key, message, or signature");
+    return false;
+  }
+
+  // Validate input types
+  if (
+    typeof key !== "string" ||
+    typeof message !== "string" ||
+    typeof signature !== "string"
+  ) {
+    console.warn("Invalid input types");
+    return false;
+  }
+
+  // Create HMAC
   const hmac = createHmac("sha256", key);
   hmac.update(message);
-  return hmac.digest("hex") === signature;
-  // const hashBytes = hmac.digest();
-  //
-  // let hashString = '';
-  // for (const byte of hashBytes) {
-  //   hashString += ('0' + byte.toString(16)).slice(-2);
-  // }
-  //
-  // return hashString === signature;
+
+  // Generate digest
+  const calculatedSignature = hmac.digest("hex");
+
+  // Timing-safe comparison
+  const calculatedBuffer = Buffer.from(calculatedSignature);
+  const providedBuffer = Buffer.from(signature);
+
+  // Check length first to prevent unnecessary timing-safe comparison
+  if (calculatedBuffer.length !== providedBuffer.length) {
+    return false;
+  }
+
+  // Use timingSafeEqual for constant-time comparison
+  return timingSafeEqual(calculatedBuffer, providedBuffer);
 }
