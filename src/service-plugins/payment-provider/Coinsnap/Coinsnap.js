@@ -80,19 +80,18 @@ export const createTransaction = async (options, context) => {
     },
   );
 
-  if (response.status == 200) {
+  if (response.ok) {
     const json = await response.json();
     return {
       pluginTransactionId: json.id,
       redirectUrl: json.checkoutLink,
     };
-  } else {
-    return {
-      errorCode: response.status,
-      errorMessage: "Error Coinsnap payment",
-      reasonCode: 2001,
-    };
   }
+  return {
+    errorCode: response.status,
+    errorMessage: "Error Coinsnap payment",
+    reasonCode: 2001,
+  };
 };
 
 const currencies = {
