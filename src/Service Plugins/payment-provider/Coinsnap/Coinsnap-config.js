@@ -11,13 +11,13 @@ export function getConfig() {
           billingAddressMandatoryFields: ["EMAIL"],
           logos: {
             white: {
-              svg: "",
-              png: "",
-            },
-            colored: {
-              svg: "",
-              png: "",
-            },
+          svg: 'https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.svg',
+          png: 'https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.png'
+        },
+        colored: {
+          svg: 'https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.svg',
+          png: 'https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.png'
+        }
           },
         },
       },
