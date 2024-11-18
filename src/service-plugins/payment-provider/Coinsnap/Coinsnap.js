@@ -9,17 +9,14 @@ import { elevate } from "wix-auth";
  * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').ConnectAccountResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
  */
 export const connectAccount = async (options, context) => {
-  let sUrl = "https://app.coinsnap.io";
-  sUrl += sUrl.endsWith("/") ? "" : "/";
-  // let returnObj = {
-  //   credentials: options.credentials,
-  // };
+  let sUrl = "https://app.coinsnap.io/";
   const response = await fetch(
     sUrl + "api/v1/stores/" + options.credentials.storeId,
     {
       method: "get",
       headers: {
-        Authorization: "x-api-key " + options.credentials.apiKey,
+        "X-Api-Key": options.credentials.apiKey,
+        "Content-Type": "application/json; charset=utf-8",
       },
     },
   );
@@ -92,18 +89,16 @@ export const connectAccount = async (options, context) => {
  * @see {@link https://dev.wix.com/docs/payment-integration Wix Payment Integration Docs}
  */
 export const createTransaction = async (options, context) => {
-  let sUrl = options.merchantCredentials.btcpayUrl;
-  sUrl += sUrl.endsWith("/") ? "" : "/";
+  const sUrl = "https://app.coinsnap.io/";
 
   const invoice = {
     currency: options.order.description.currency,
     amount:
       parseInt(options.order.description.totalAmount) /
       Math.pow(10, currencies[options.order.description.currency]),
-    checkout: {
-      redirectURL: options.order.returnUrls.successUrl,
-      redirectAutomatically: true,
-    },
+    redirectUrl: options.order.returnUrls.successUrl,
+    redirectAutomatically: true,
+    referralCode: "D19987",
     metadata: {
       buyerEmail: options.order.description.billingAddress.email,
       buyerName:
@@ -123,7 +118,7 @@ export const createTransaction = async (options, context) => {
       method: "post",
       headers: {
         "Content-Type": "application/json; charset=utf-8",
-        Authorization: "x-api-key " + options.merchantCredentials.apiKey,
+        "X-Api-Key": options.merchantCredentials.apiKey,
       },
       body: JSON.stringify(invoice),
     },
@@ -142,7 +137,14 @@ export const createTransaction = async (options, context) => {
     redirectUrl: json.checkoutLink,
   };
 };
-
+export const refundTransaction = async (options, context) => {
+  try {
+    let refundSession = "";
+    return refundSession;
+  } catch (error) {
+    return error;
+  }
+};
 const currencies = {
   JPY: 0,
   EUR: 2,
