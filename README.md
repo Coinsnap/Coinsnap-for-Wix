@@ -87,7 +87,7 @@ The Coinsnap for Wix plugin allows you to accept Bitcoin Lightning payments in e
 - Go to your site's dashboard, and in the left menu, click on **Settings**.
 - On the Settings page, click **Accept Payments**.
 
-![Connect Coinsnap as Payment Provider](/assets/images/screenshot13-Wix-Payment-Methods.png)
+![Set Up Payment Configuration](/assets/images/screenshot12-Wix-Accept-Payments.png)
 
 13. **Connect Coinsnap as Payment Provider**
 
