@@ -2,7 +2,7 @@ import wixPaymentProviderBackend from "wix-payment-provider-backend";
 import { ok, badRequest } from "wix-http-functions";
 import { createHmac, timingSafeEqual } from "crypto";
 
-export async function use_post_coinsnap_webhook(request) {
+export async function use_post_coinsnapWebhook(request) {
   const req = await request.body.json();
 
   const validTypes = [
@@ -11,7 +11,7 @@ export async function use_post_coinsnap_webhook(request) {
     "InvoiceExpired",
     "InvoiceInvalid",
   ];
-  if (!validTypes.includes(req.type)) { //req.invoiceId.startsWith("test__") || 
+  if (!validTypes.includes(req.type)) {
     return ok();
   }
 
@@ -52,19 +52,6 @@ export async function use_post_coinsnap_webhook(request) {
   return ok();
 }
 
-// function checkSecretKey(key, message, signature) {
-//   const hmac = createHmac("sha256", key);
-//   hmac.update(message);
-//   return hmac.digest("hex") === signature;
-//   // const hashBytes = hmac.digest();
-//   //
-//   // let hashString = '';
-//   // for (const byte of hashBytes) {
-//   //   hashString += ('0' + byte.toString(16)).slice(-2);
-//   // }
-//   //
-//   // return hashString === signature;
-// }
 function checkSecretKey(key, message, signature) {
   // Input validation
   if (!key || !message || !signature) {
@@ -73,11 +60,7 @@ function checkSecretKey(key, message, signature) {
   }
 
   // Validate input types
-  if (
-    typeof key !== "string" ||
-    typeof message !== "string" ||
-    typeof signature !== "string"
-  ) {
+  if (typeof key !== "string" || typeof message !== "string" || typeof signature !== "string") {
     console.warn("Invalid input types");
     return false;
   }

@@ -10,20 +10,18 @@ import { elevate } from "wix-auth";
  */
 export const connectAccount = async (options, context) => {
   let sUrl = "https://app.coinsnap.io/";
-  //sUrl += sUrl.endsWith("/") ? "" : "/";
   let returnObj = {
     credentials: options.credentials,
   };
   const response = await fetch(
     sUrl + "api/v1/stores/" + options.credentials.storeId,
     {
-      method: "get",
-      headers: {
-        //Authorization: "x-api-key " + options.credentials.apiKey,
+        method: "get",
+        headers: {
         'accept': 'application/json',
-      'content-type': 'application/json',
-      'x-api-key': options.credentials.apiKey
-      },
+        'content-type': 'application/json',
+        'x-api-key': options.credentials.apiKey
+        },
     },
   );
 
@@ -46,43 +44,42 @@ export const connectAccount = async (options, context) => {
  * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').CreateTransactionResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
  */
 export const createTransaction = async (options, context) => {
-  let sUrl = "https://app.coinsnap.io/";
-  //sUrl += sUrl.endsWith("/") ? "" : "/";
+    let sUrl = "https://app.coinsnap.io/";
 
-  const invoice = {
-    currency: options.order.description.currency,
-    amount: parseInt(options.order.description.totalAmount) / Math.pow(10, currencies[options.order.description.currency]),
-    redirectUrl: options.order.returnUrls.successUrl,
-    orderId: options.order._id,
-    buyerEmail: options.order.description.billingAddress.email,
-    referralCode: 'D19987',
-    metadata: {
-      customerName: options.order.description.billingAddress.firstName + " " + options.order.description.billingAddress.lastName,
-      orderNumber: options.order._id,
-      wixTransactionID: options.wixTransactionId,
-    },
-  };
-
-  const response = await fetch(
-    sUrl + "api/v1/stores/" + options.merchantCredentials.storeId + "/invoices",
-    {
-      method: "post",
-      headers: {
-        //"Content-Type": "application/json; charset=utf-8",
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'x-api-key': options.merchantCredentials.apiKey
-      },
-      body: JSON.stringify(invoice),
-    },
-  );
-
-  if (response.status == 200) {
-    const json = await response.json();
-    return {
-      pluginTransactionId: json.id,
-      redirectUrl: json.checkoutLink,
+    const invoice = {
+        currency: options.order.description.currency,
+        amount: parseInt(options.order.description.totalAmount) / Math.pow(10, currencies[options.order.description.currency]),
+        redirectUrl: options.order.returnUrls.successUrl,
+        redirectAutomatically: true,
+        orderId: options.order._id,
+        buyerEmail: options.order.description.billingAddress.email,
+        referralCode: 'D19987',
+        metadata: {
+            customerName: options.order.description.billingAddress.firstName + " " + options.order.description.billingAddress.lastName,
+            orderNumber: options.order._id,
+            wixTransactionID: options.wixTransactionId,
+        },
     };
+
+    const response = await fetch(
+        sUrl + "api/v1/stores/" + options.merchantCredentials.storeId + "/invoices",
+        {
+            method: "post",
+            headers: {
+                'accept': 'application/json',
+                'content-type': 'application/json',
+                'x-api-key': options.merchantCredentials.apiKey
+            },
+            body: JSON.stringify(invoice),
+        },
+    );
+
+    if (response.status == 200) {
+        const json = await response.json();
+        return {
+          pluginTransactionId: json.id,
+          redirectUrl: json.checkoutLink,
+        };
   } else {
     return {
       errorCode: response.status,
