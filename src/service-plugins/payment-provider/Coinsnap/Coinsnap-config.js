@@ -11,6 +11,7 @@ export function getConfig() {
           billingAddressMandatoryFields: ["EMAIL"],
           logos: {
             white: {
+<<<<<<< HEAD
           svg: 'https://resources.coinsnap.org/logo/bitcoin-lightning-logo.svg?color=white',
           png: 'https://resources.coinsnap.org/logo/bitcoin-lightning-logo.png?color=white'
         },
@@ -18,6 +19,15 @@ export function getConfig() {
           svg: 'https://resources.coinsnap.org/logo/bitcoin-lightning-logo.svg',
           png: 'https://resources.coinsnap.org/logo/bitcoin-lightning-logo.png'
         }
+=======
+              svg: "https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.svg",
+              png: "https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.png",
+            },
+            colored: {
+              svg: "https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.svg",
+              png: "https://coinsnap.io/wp-content/uploads/2024/11/coinsnap-logo.png",
+            },
+>>>>>>> fix-issues
           },
         },
       },

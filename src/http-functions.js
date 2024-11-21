@@ -2,7 +2,11 @@ import wixPaymentProviderBackend from "wix-payment-provider-backend";
 import { ok, badRequest } from "wix-http-functions";
 import { createHmac, timingSafeEqual } from "crypto";
 
+<<<<<<< HEAD
 export async function use_post_coinsnapWebhook(request) {
+=======
+export async function post_coinsnapWebhook(request) {
+>>>>>>> fix-issues
   const req = await request.body.json();
 
   const validTypes = [
@@ -11,6 +15,10 @@ export async function use_post_coinsnapWebhook(request) {
     "InvoiceExpired",
     "InvoiceInvalid",
   ];
+<<<<<<< HEAD
+=======
+  //req.invoiceId.startsWith("test__") ||
+>>>>>>> fix-issues
   if (!validTypes.includes(req.type)) {
     return ok();
   }
