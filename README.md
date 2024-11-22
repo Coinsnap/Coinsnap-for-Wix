@@ -4,79 +4,87 @@
 
 ## Accept Bitcoin and Lightning Payments with Wix
 
-The Coinsnap for Wix plugin allows you to accept Bitcoin Lightning payments in e-store, created on Wix platform.
+The Coinsnap for Wix plugin allows you to accept Bitcoin and Lightning payments in e-store, created on Wix platform. Please follow the steps below and copy and paste the code into your Wix editor to set up payments via Coinsnap payment gateway.
+
+### Requirements
+
+You have a **Wix** account (at least **Core Premium plan**) and online store up and running. 
 
 ### Steps to Integrate Coinsnap as a Payment Provider in Wix
 
 1. **Enable Developer Mode**
 
-   - In your Wix site, open the **Wix Editor**.
-   - At the top, click on **Dev Mode** and then click the **Turn on Dev Mode** button to enable developer mode.
+In your Wix site, open the **Wix Editor**.
+
+At the top, click on **Dev Mode** and then click the **Turn on Dev Mode** button to enable developer mode.
 
 ![Enable Developer Mode](/assets/images/screenshot1-Wix-Velo-Dev-Mode.png)
 
 2. **Open the Code Editor**
 
-   - On the left side, click on the **{ } icon** to open the code editor.
+On the left side, click on the **{ } icon** to open the code editor.
 
 ![Open the Code Editor](/assets/images/screenshot2-Wix-Velo-Code-Editor.png)
 
 3. **Add Payment Provider Service Plugin**
 
-   - In the **Service Plugins** section, click on the **(+)** sign and select **Payment** to add a payment provider service plugin.
+In the **Service Plugins** section, click on the **(+)** sign and select **Payment** to add a payment provider service plugin.
 
 ![Add Payment Provider Service Plugin](/assets/images/screenshot3-Wix-New-Service-Plugin.png)
 
 4. **Start Setup**
 
-   - On the following screen, click **Start now**.
+On the following screen, click **Start now**.
 
 ![Start Setup](/assets/images/screenshot4-Wix-Start-Setup.png)
 
 5. **Accept Terms**
 
-   - On the legal terms page, check the terms and click **Accept**.
+On the legal terms page, check the terms and click **Accept**.
 
 ![Accept Terms](/assets/images/screenshot5-Wix-Legal-Notice.png)
 
 6. **Name the Plugin**
 
-   - Enter the name of the plugin: **Coinsnap** (you can use any name, but this will make it easier to follow the guide).
-   - Click **Add & Edit Code**.
+Enter the name of the plugin: **Coinsnap** (you can use any name, but this will make it easier to follow the guide).
+
+Click **Add & Edit Code**.
 
 ![Accept Terms](/assets/images/screenshot6-Wix-Name-Plugin.png)
 
 7. **Locate Created Files**
 
-   - This creates a directory named **Coinsnap** containing two files: `Coinsnap.js` and `Coinsnap-config.js`, which will open in the editor.
+This creates a directory named **Coinsnap** containing two files: `Coinsnap.js` and `Coinsnap-config.js`, which will open in the editor.
 
 ![Accept Terms](/assets/images/screenshot7-Wix-Locate-Coinsnap-files.png)
 
 8. **Copy Code to `Coinsnap-config.js`**
 
-   - In `Coinsnap-config.js`, paste the code from our Git repository. Click the **Copy raw file** icon to easily copy the code.
-   - Make sure to delete any example code in `Coinsnap-config.js` in the Wix editor before pasting the new code.
+In `Coinsnap-config.js`, paste the code from our Git repository. Click the **Copy raw file** icon to easily copy the code.
+
+Make sure to delete any example code in `Coinsnap-config.js` in the Wix editor before pasting the new code.
 
 ![Copy Code to `Coinsnap-config.js`](/assets/images/screenshot8-Wix-Coinsnap-config.png)
 
 9. **Copy Code to `Coinsnap.js`**
 
-   - Open `Coinsnap.js` in the Wix editor and paste the code from our Git repository.
-   - Delete all example code from `Coinsnap.js` before pasting the new code.
+Open `Coinsnap.js` in the Wix editor and paste the code from our Git repository.
+
+Delete all example code from `Coinsnap.js` before pasting the new code.
 
 ![Copy Code to `Coinsnap.js`](/assets/images/screenshot9-Wix-Coinsnap.png)
 
 10. **Add `http-functions.js` to the Backend Directory**
 
-- In the **backend** section of your editor, click on the **(+) icon** and select **Expose Site API**, which creates an `http-functions.js` file. (If this file already exists, you can skip this step.)
+In the **backend** section of your editor, click on the **(+) icon** and select **Expose Site API**, which creates an `http-functions.js` file. (If this file already exists, you can skip this step.)
 
-- Copy the code from our Git repository into `http-functions.js`. If `http-functions.js` already exists, add the code from GitHub below the existing code. If not, delete any example code before pasting.
+Copy the code from our Git repository into `http-functions.js`. If `http-functions.js` already exists, add the code from GitHub below the existing code. If not, delete any example code before pasting.
 
 ![Add `http-functions.js` to the Backend Directory](/assets/images/screenshot10-Wix-Backend-http-functions.png)
 
 11. **Publish Changes**
 
-- Once the code is complete, click **Publish** to save the changes and make the plugin available.
+Once the code is complete, click **Publish** to save the changes and make the plugin available.
 
 ![Publish Changes](/assets/images/screenshot11-Wix-Publish-Changes.png)
 
@@ -84,34 +92,33 @@ The Coinsnap for Wix plugin allows you to accept Bitcoin Lightning payments in e
 
 12. **Set Up Payment Configuration**
 
-- Go to your site's dashboard, and in the left menu, click on **Settings**.
-- On the Settings page, click **Accept Payments**.
+Go to your site's dashboard, and in the left menu, click on **Settings**.
+
+On the Settings page, click **Accept Payments**.
 
 ![Set Up Payment Configuration](/assets/images/screenshot12-Wix-Accept-Payments.png)
 
 13. **Connect Coinsnap as Payment Provider**
 
-- On the following page, you should see **Bitcoin/Lightning with Coinsnap** as a payment provider. If not, refresh the page to clear the Wix cache.
-- Click **Connect** next to Coinsnap.
+On the following page, you should see **Bitcoin/Lightning with Coinsnap** as a payment provider. If not, refresh the page to clear the Wix cache.
+
+Click **Connect** next to Coinsnap.
 
 ![Connect Coinsnap as Payment Provider](/assets/images/screenshot13-Wix-Payment-Methods.png)
 
 14. **Enter Configuration Details**
 
-- You will be prompted to enter the following fields:
+You will be prompted to enter the following fields:
+
   - **API Key**
   - **Store ID**
   - **Webhook Secret**
 
 ![Enter Configuration Details](/assets/images/screenshot14-Coinsnap-Configuration-Settings.png)
 
-### Store ID
+### Store ID and API Key
 
-In your Wix store: paste that Store ID into the "**Store ID**" field
-
-### API Key
-
-In your Wix store: paste that API key into the "**API Key**" field
+In your Wix store: paste that Store ID into the "**Store ID**" field and API key into the "**API Key**" field
 
 ![Store ID and API Key](/assets/images/screenshot14.1-StoreID-API-Key.png)
 
