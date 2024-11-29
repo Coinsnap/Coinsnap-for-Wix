@@ -3,54 +3,57 @@ import { ok, badRequest } from "wix-http-functions";
 import { createHmac, timingSafeEqual } from "crypto";
 
 export async function use_post_coinsnapWebhook(request) {
-    const req = await request.body.json();
+  const rawBody = await request.body.text();
+  const req = JSON.parse(rawBody);
+  const validTypes = [
+    "InvoiceProcessing",
+    "InvoiceSettled",
+    "InvoiceExpired",
+    "InvoiceInvalid",
+  ];
 
-    const validTypes = [
-        "InvoiceProcessing",
-        "InvoiceSettled",
-        "InvoiceExpired",
-        "InvoiceInvalid",
-    ];
-  
-    if (!validTypes.includes(req.type)) {
-        return ok();
-    }
-
-    let rawBody = await request.body.text();
-
-    const secret = request.headers["x-coinsnap-sig"].split("=")[1];
-    if (!checkSecretKey(req.metadata.wixAdditionalId, rawBody, secret)) {
-        return badRequest();
-    }
-
-    var trx = {
-        wixTransactionId: req.metadata.wixTxId,
-        pluginTransactionId: req.invoiceId + "|" + req.metadata.currency,
-    };
-
-    switch (req.type) {
-        case "InvoiceProcessing":
-        case "InvoiceSettled":
-          trx.reasonCode = 5009;
-          break;
-        case "InvoiceExpired":
-          trx.reasonCode = 3035;
-          trx.errorCode = "Expired";
-          trx.errorMessage = "An invoice expired";
-          break;
-        case "InvoiceInvalid":
-          trx.reasonCode = 3000;
-          trx.errorCode = "Invalid";
-          trx.errorMessage = "An invoice became invalid";
-          break;
-    }
-
-    await wixPaymentProviderBackend.submitEvent({
-        event: {
-          transaction: trx,
-        },
-    });
+  if (!validTypes.includes(req.type)) {
     return ok();
+  }
+
+  const secret = request.headers["x-coinsnap-sig"];
+  if (!secret || !secret.startsWith("sha256=")) {
+    console.warn("Invalid or missing signature header");
+    return badRequest();
+  }
+
+  if (!checkSecretKey(req.metadata.wixAdditionalId, rawBody, secret)) {
+    return badRequest();
+  }
+
+  var trx = {
+    wixTransactionId: req.metadata.wixTxId,
+    pluginTransactionId: req.invoiceId + "|" + req.metadata.currency,
+  };
+
+  switch (req.type) {
+    case "InvoiceProcessing":
+    case "InvoiceSettled":
+      trx.reasonCode = 5009;
+      break;
+    case "InvoiceExpired":
+      trx.reasonCode = 3035;
+      trx.errorCode = "Expired";
+      trx.errorMessage = "An invoice expired";
+      break;
+    case "InvoiceInvalid":
+      trx.reasonCode = 3000;
+      trx.errorCode = "Invalid";
+      trx.errorMessage = "An invoice became invalid";
+      break;
+  }
+
+  await wixPaymentProviderBackend.submitEvent({
+    event: {
+      transaction: trx,
+    },
+  });
+  return ok();
 }
 
 function checkSecretKey(key, message, signature) {
@@ -61,7 +64,11 @@ function checkSecretKey(key, message, signature) {
   }
 
   // Validate input types
-  if (typeof key !== "string" || typeof message !== "string" || typeof signature !== "string") {
+  if (
+    typeof key !== "string" ||
+    typeof message !== "string" ||
+    typeof signature !== "string"
+  ) {
     console.warn("Invalid input types");
     return false;
   }
