@@ -1,6 +1,14 @@
 import { orders } from "wix-ecom-backend";
 import { elevate } from "wix-auth";
+import { fetch } from 'wix-fetch';
 
+/**
+ * This payment plugin endpoint is triggered when a merchant provides required data to connect their PSP account to a Wix site.
+ * The plugin has to verify merchant's credentials, and ensure the merchant has an operational PSP account.
+ * @param {import('interfaces-psp-v1-payment-service-provider').ConnectAccountOptions} options
+ * @param {import('interfaces-psp-v1-payment-service-provider').Context} context
+ * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').ConnectAccountResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
+ */
 export const connectAccount = async (options, context) => {
   let sUrl = "https://app.coinsnap.io/";
   let returnObj = {
@@ -18,10 +26,11 @@ export const connectAccount = async (options, context) => {
     },
   );
 
-  if (response.status == 200) {
+  if (response.status === 200) {
     returnObj.accountId = "myId";
     returnObj.accountName = "CoinsnapAccount";
-  } else {
+  }
+  else {
     returnObj.errorCode = response.status;
     returnObj.errorMessage = "Error during connection with Coinsnap";
     returnObj.reasonCode = 1002;
@@ -29,6 +38,13 @@ export const connectAccount = async (options, context) => {
   return returnObj;
 };
 
+/**
+ * This payment plugin endpoint is triggered when a buyer pays on a Wix site.
+ * The plugin has to process this payment request but prevent double payments for the same `wixTransactionId`.
+ * @param {import('interfaces-psp-v1-payment-service-provider').CreateTransactionOptions} options
+ * @param {import('interfaces-psp-v1-payment-service-provider').Context} context
+ * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').CreateTransactionResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
+ */
 export const createTransaction = async (options, context) => {
     let sUrl = "https://app.coinsnap.io/";
 
@@ -36,7 +52,6 @@ export const createTransaction = async (options, context) => {
         currency: options.order.description.currency,
         amount: parseInt(options.order.description.totalAmount) / Math.pow(10, currencies[options.order.description.currency]),
         redirectUrl: options.order.returnUrls.successUrl,
-        redirectAutomatically: true,
         orderId: options.order._id,
         buyerEmail: options.order.description.billingAddress.email,
         referralCode: 'D19987',
@@ -44,6 +59,8 @@ export const createTransaction = async (options, context) => {
             customerName: options.order.description.billingAddress.firstName + " " + options.order.description.billingAddress.lastName,
             orderNumber: options.order._id,
             wixTransactionID: options.wixTransactionId,
+            wixAdditionalID: options.merchantCredentials.webhookSecret,
+            currency: options.order.description.currency
         },
     };
 
