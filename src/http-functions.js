@@ -5,46 +5,50 @@ import { createHmac, timingSafeEqual } from "crypto";
 export async function use_post_coinsnapWebhook(request) {
   const rawBody = await request.body.text();
   const req = JSON.parse(rawBody);
-  const validTypes = [
-    "InvoiceProcessing",
-    "InvoiceSettled",
-    "InvoiceExpired",
-    "InvoiceInvalid",
-  ];
 
+  const validTypes = [
+    "Processing",
+    "Settled",
+    "Expired",
+    "New"
+  ];
   if (!validTypes.includes(req.type)) {
     return ok();
   }
 
-  const secret = request.headers["x-coinsnap-sig"];
+  let secret = request.headers["x-coinsnap-sig"];
   if (!secret || !secret.startsWith("sha256=")) {
     console.warn("Invalid or missing signature header");
     return badRequest();
   }
+  else {
+     secret = secret.split("=")[1];
+  }
 
-  if (!checkSecretKey(req.metadata.wixAdditionalId, rawBody, secret)) {
+  if (!checkSecretKey(req.metadata.wixAdditionalID, rawBody, secret)) {
     return badRequest();
   }
 
   var trx = {
-    wixTransactionId: req.metadata.wixTxId,
-    pluginTransactionId: req.invoiceId + "|" + req.metadata.currency,
+    wixTransactionId: req.metadata.wixTransactionID,
+    pluginTransactionId: req.invoiceId,
   };
 
   switch (req.type) {
-    case "InvoiceProcessing":
-    case "InvoiceSettled":
-      trx.reasonCode = 5009;
+    case "Processing":
+      console.log('Processing transaction: '+ trx.wixTransactionId + ' / ' + trx.pluginTransactionId);
       break;
-    case "InvoiceExpired":
+    case "Settled":
+      trx.reasonCode = 5009;
+      console.log('Transaction settled: '+ trx.wixTransactionId + ' / ' + trx.pluginTransactionId);
+      break;
+    case "Expired":
       trx.reasonCode = 3035;
       trx.errorCode = "Expired";
       trx.errorMessage = "An invoice expired";
       break;
-    case "InvoiceInvalid":
-      trx.reasonCode = 3000;
-      trx.errorCode = "Invalid";
-      trx.errorMessage = "An invoice became invalid";
+    case "New":
+      console.log('New transaction: '+ trx.wixTransactionId + ' / ' + trx.pluginTransactionId);
       break;
   }
 
@@ -57,18 +61,15 @@ export async function use_post_coinsnapWebhook(request) {
 }
 
 function checkSecretKey(key, message, signature) {
-  // Input validation
+   
+  // Check parameters
   if (!key || !message || !signature) {
     console.warn("Invalid input: Missing key, message, or signature");
     return false;
   }
 
-  // Validate input types
-  if (
-    typeof key !== "string" ||
-    typeof message !== "string" ||
-    typeof signature !== "string"
-  ) {
+  // Check parameters type
+  if (typeof key !== "string" || typeof message !== "string" || typeof signature !== "string") {
     console.warn("Invalid input types");
     return false;
   }
@@ -76,19 +77,25 @@ function checkSecretKey(key, message, signature) {
   // Create HMAC
   const hmac = createHmac("sha256", key);
   hmac.update(message);
-
+  
   // Generate digest
   const calculatedSignature = hmac.digest("hex");
-
+  
   // Timing-safe comparison
   const calculatedBuffer = Buffer.from(calculatedSignature);
   const providedBuffer = Buffer.from(signature);
-
+  
   // Check length first to prevent unnecessary timing-safe comparison
   if (calculatedBuffer.length !== providedBuffer.length) {
+    console.warn("Check sums don't match");
     return false;
   }
-
+  
   // Use timingSafeEqual for constant-time comparison
-  return timingSafeEqual(calculatedBuffer, providedBuffer);
+  if(!timingSafeEqual(calculatedBuffer, providedBuffer)){
+    console.warn("Constant-time comparison is failed");
+    return false;
+  }
+  
+  return true;
 }
