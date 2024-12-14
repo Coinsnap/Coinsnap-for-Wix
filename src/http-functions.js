@@ -45,9 +45,6 @@ export async function use_post_coinsnapWebhook(request) {
       trx.errorCode = "Expired";
       trx.errorMessage = "An invoice expired";
       break;
-    case "New":
-      console.log('New transaction: '+ trx.wixTransactionId + ' / ' + trx.pluginTransactionId);
-      break;
   }
 
   await wixPaymentProviderBackend.submitEvent({
