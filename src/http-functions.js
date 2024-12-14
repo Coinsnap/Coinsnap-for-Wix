@@ -9,8 +9,7 @@ export async function use_post_coinsnapWebhook(request) {
   const validTypes = [
     "Processing",
     "Settled",
-    "Expired",
-    //"New"
+    "Expired"
   ];
   if (!validTypes.includes(req.type)) {
     return ok();
@@ -35,7 +34,6 @@ export async function use_post_coinsnapWebhook(request) {
   };
 
   switch (req.type) {
-    case "Processing":
     case "Settled":
       trx.reasonCode = 5009;
       console.log('Transaction settled: '+ trx.wixTransactionId + ' / ' + trx.pluginTransactionId);
