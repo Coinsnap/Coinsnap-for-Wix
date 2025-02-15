@@ -2,9 +2,22 @@
 
 ![Coinsnap for Wix](https://resources.coinsnap.org/products/wix/images/cover.png)
 
+* Contributors: coinsnap
+* Tags: Lightning, Lightning Payment, SATS, Satoshi sats, bitcoin, Wordpress, Wix, accept bitcoin, bitcoin payment processor, bitcoin e-commerce, Lightning Network, cryptocurrency, lightning payment processor
+* Requires Wix: Core Premium plan
+* Stable tag: 1.1.1
+* License: GPL2
+* License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+
 ## Accept Bitcoin and Lightning Payments with Wix
 
 The Coinsnap for Wix plugin allows you to accept Bitcoin and Lightning payments in e-store, created on Wix platform. Please follow the steps below and copy and paste the code into your Wix editor to set up payments via Coinsnap payment gateway.
+
+* Coinsnap for JTL Demo Site: [https://wix.coinsnap.org/](https://wix.coinsnap.org/)
+* Blog Article: [https://coinsnap.io/coinsnap-for-wix/](https://coinsnap.io/coinsnap-for-wix/)
+* GitHub: [https://github.com/Coinsnap/Coinsnap-for-Wix/](https://github.com/Coinsnap/Coinsnap-for-Wix/)
+
 
 ### Requirements
 
