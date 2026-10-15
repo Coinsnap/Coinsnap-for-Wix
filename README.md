@@ -1,209 +1,205 @@
-# Coinsnap for Wix payment plugin
+# Coinsnap for Wix
 
 ![Coinsnap for Wix](https://resources.coinsnap.org/products/wix/images/cover.png)
 
-* Contributors: coinsnap
-* Tags: Lightning, Lightning Payment, SATS, Satoshi sats, bitcoin, Wordpress, Wix, accept bitcoin, bitcoin payment processor, bitcoin e-commerce, Lightning Network, cryptocurrency, lightning payment processor
-* Requires Wix: Core Premium plan
-* Stable tag: 1.1.1
-* License: GPL2
-* License URI: https://www.gnu.org/licenses/gpl-2.0.html
+**Bitcoin payment integration for Wix — accept Bitcoin and Lightning with Coinsnap or your own BTCPay Server.**
 
+Coinsnap for Wix adds Bitcoin payments to Wix stores through Wix's developer framework. Because Wix does not provide a native Bitcoin payment integration, the Coinsnap setup uses Wix Developer Mode, a custom payment provider service plugin and backend functions.
 
-## Accept Bitcoin and Lightning Payments with Wix
+Customers can pay with **Bitcoin via Lightning or on-chain** while orders remain managed inside the existing Wix backend.
 
-The Coinsnap for Wix plugin allows you to accept Bitcoin and Lightning payments in e-store, created on Wix platform. Please follow the steps below and copy and paste the code into your Wix editor to set up payments via Coinsnap payment gateway.
+Coinsnap is **Bitcoin payment software for merchants** and a brand of **Onlineshop24 d.o.o., Serbia**.
 
-* Coinsnap for JTL Demo Site: [https://wix.coinsnap.org/](https://wix.coinsnap.org/)
-* Blog Article: [https://coinsnap.io/coinsnap-for-wix/](https://coinsnap.io/coinsnap-for-wix/)
-* GitHub: [https://github.com/Coinsnap/Coinsnap-for-Wix/](https://github.com/Coinsnap/Coinsnap-for-Wix/)
+## Key features
 
+- Accept **Bitcoin and Lightning payments** in Wix
+- Support for **Lightning and Bitcoin on-chain**
+- Integration with the existing Wix checkout and order workflow
+- Built with **Wix Developer Mode / Velo**
+- Custom payment provider service plugin
+- Backend webhook integration
+- Support for **Coinsnap** and **BTCPay Server**
+- Optional **Bitcoin discount** with fixed or percentage-based discounts
+- No own Lightning node or Bitcoin payment infrastructure required when using Coinsnap
+- **Non-custodial / self-custody** approach
+- Optional settlement to a compatible Bitcoin wallet or, through supported partners, to a bank account
+- Free Coinsnap integration service available
+- Open source under the MIT License
 
-### Requirements
+## Requirements
 
-You have a **Wix** account (at least **Core Premium plan**) and online store up and running. 
+To use the Wix integration you need:
 
-### Steps to Integrate Coinsnap as a Payment Provider in Wix
+- A **Wix Store** with administrator access
+- A Wix plan that supports the required e-commerce and developer functionality
+- Access to **Wix Developer Mode / Velo**
+- A **Coinsnap merchant account**, or your own **BTCPay Server**
+- The source files from this repository
 
-1. **Enable Developer Mode**
+For Bitcoin settlement with Coinsnap, you can use a compatible Bitcoin or Lightning wallet. One option is the [Coinsnap Wallet](https://coinsnap.io/wallet/), which combines a self-custodial Bitcoin wallet with merchant and point-of-sale functionality.
 
-In your Wix site, open the **Wix Editor**.
+## How it works
 
-At the top, click on **Dev Mode** and then click the **Turn on Dev Mode** button to enable developer mode.
+1. Create a [Coinsnap merchant account](https://app.coinsnap.io/register).
+2. Open your Wix site and enable **Developer Mode**.
+3. Add a **Payment Provider Service Plugin**.
+4. Create the Coinsnap service-plugin files.
+5. Copy the source code from this repository into the Wix code editor.
+6. Add the backend HTTP functions required for webhook handling.
+7. Publish the Wix changes.
+8. Connect Coinsnap under **Settings → Accept Payments**.
+9. Enter the required Store ID, API key and webhook secret.
+10. Configure BTCPay Server or the optional Bitcoin discount if required.
+11. Perform a test transaction before going live.
 
-![Enable Developer Mode](https://resources.coinsnap.org/products/wix/images/screenshot1-Wix-Velo-Dev-Mode.png)
+## Coinsnap or BTCPay Server
 
-2. **Open the Code Editor**
+The Wix integration can be used with two payment-provider setups:
 
-On the left side, click on the **{ } icon** to open the code editor.
+- **Coinsnap** — for merchants who want to accept Bitcoin without operating their own Bitcoin or Lightning payment infrastructure.
+- **BTCPay Server** — for merchants who want to use their own BTCPay Server and retain full control over their payment infrastructure.
 
-![Open the Code Editor](https://resources.coinsnap.org/products/wix/images/screenshot2-Wix-Velo-Code-Editor.png)
+## Bitcoin discount
 
-3. **Add Payment Provider Service Plugin**
+The Wix Bitcoin payment integration supports an optional discount for customers who choose Bitcoin or Lightning at checkout.
 
-In the **Service Plugins** section, click on the **(+)** sign and select **Payment** to add a payment provider service plugin.
+Merchants can configure either:
 
-![Add Payment Provider Service Plugin](https://resources.coinsnap.org/products/wix/images/screenshot3-Wix-New-Service-Plugin.png)
+- a **percentage-based discount**, or
+- a **fixed discount**
 
-4. **Start Setup**
+This can be used to encourage customers to choose Bitcoin as their payment method.
 
-On the following screen, click **Start now**.
+## Installation
 
-![Start Setup](https://resources.coinsnap.org/products/wix/images/screenshot4-Wix-Start-Setup.png)
+### 1. Enable Wix Developer Mode
 
-5. **Accept Terms**
+Open your Wix site in the Wix Editor and enable **Dev Mode**.
 
-On the legal terms page, check the terms and click **Accept**.
+### 2. Add the payment provider service plugin
 
-![Accept Terms](https://resources.coinsnap.org/products/wix/images/screenshot5-Wix-Legal-Notice.png)
+In the Wix code editor:
 
-6. **Name the Plugin**
+1. Open **Service Plugins**.
+2. Click **Add**.
+3. Select **Payment**.
+4. Start the setup.
+5. Accept the Wix terms.
+6. Name the service plugin **Coinsnap**.
+7. Choose **Add & Edit Code**.
 
-Enter the name of the plugin: **Coinsnap** (you can use any name, but this will make it easier to follow the guide).
+Wix creates the service-plugin files for the payment provider.
 
-Click **Add & Edit Code**.
+### 3. Add the Coinsnap source code
 
-![Accept Terms](https://resources.coinsnap.org/products/wix/images/screenshot6-Wix-Name-Plugin.png)
+Copy the corresponding source code from this repository into the Wix-generated files.
 
-7. **Locate Created Files**
+The repository includes the code required for:
 
-This creates a directory named **Coinsnap** containing two files: `Coinsnap.js` and `Coinsnap-config.js`, which will open in the editor.
+- the Coinsnap payment provider
+- the provider configuration
+- backend HTTP functions used for webhook handling
 
-![Accept Terms](https://resources.coinsnap.org/products/wix/images/screenshot7-Wix-Locate-Coinsnap-files.png)
+Remove Wix example code before pasting the Coinsnap implementation.
 
-8. **Copy Code to `Coinsnap-config.js`**
+### 4. Add backend HTTP functions
 
-In `Coinsnap-config.js`, paste the code from our Git repository. Click the **Copy raw file** icon to easily copy the code.
+In the Wix backend section, create or open `http-functions.js`.
 
-Make sure to delete any example code in `Coinsnap-config.js` in the Wix editor before pasting the new code.
+Add the Coinsnap webhook code from this repository. If the file already contains other site functions, append the Coinsnap functions without removing your existing code.
 
-![Copy Code to `Coinsnap-config.js`](https://resources.coinsnap.org/products/wix/images/screenshot8-Wix-Coinsnap-config.png)
+### 5. Publish the site
 
-9. **Copy Code to `Coinsnap.js`**
+Publish the Wix site so the custom payment provider becomes available in the dashboard.
 
-Open `Coinsnap.js` in the Wix editor and paste the code from our Git repository.
+## Configuration
 
-Delete all example code from `Coinsnap.js` before pasting the new code.
+In the Wix dashboard:
 
-![Copy Code to `Coinsnap.js`](https://resources.coinsnap.org/products/wix/images/screenshot9-Wix-Coinsnap.png)
+1. Go to **Settings → Accept Payments**.
+2. Find **Bitcoin / Lightning with Coinsnap**.
+3. Click **Connect**.
+4. Enter your:
+   - **Store ID**
+   - **API key**
+   - **Webhook secret**
+5. Save the configuration.
 
-10. **Add `http-functions.js` to the Backend Directory**
+Your Coinsnap Store ID and API key are available in your Coinsnap merchant account.
 
-In the **backend** section of your editor, click on the **(+) icon** and select **Expose Site API**, which creates an `http-functions.js` file. (If this file already exists, you can skip this step.)
+### Webhook setup
 
-Copy the code from our Git repository into `http-functions.js`. If `http-functions.js` already exists, add the code from GitHub below the existing code. If not, delete any example code before pasting.
+Create a webhook in your Coinsnap merchant account using your Wix site URL together with the Coinsnap callback path.
 
-![Add `http-functions.js` to the Backend Directory](https://resources.coinsnap.org/products/wix/images/screenshot10-Wix-Backend-http-functions.png)
+A typical callback URL follows this pattern:
 
-11. **Publish Changes**
+`https://example.com/_functions/post_coinsnapWebhook`
 
-Once the code is complete, click **Publish** to save the changes and make the plugin available.
+Replace `example.com` with your Wix domain.
 
-![Publish Changes](https://resources.coinsnap.org/products/wix/images/screenshot11-Wix-Publish-Changes.png)
+Copy the generated webhook secret into the corresponding Wix Coinsnap configuration field.
 
-### Configure the Payment Service Provider Plugin (PSPP)
+## Free integration service
 
-12. **Set Up Payment Configuration**
+If you do not want to perform the Wix developer setup yourself, Coinsnap offers a **free integration service** that can install and configure the Wix Bitcoin payment integration for you.
 
-Go to your site's dashboard, and in the left menu, click on **Settings**.
+## Resources
 
-On the Settings page, click **Accept Payments**.
+- [Coinsnap for Wix product page](https://coinsnap.io/shop-systems/wix/)
+- [Wix Bitcoin user guide](https://www.coinsnap.io/user-guides/wix-bitcoin-user-guide/)
+- [Coinsnap Wix demo store](https://wix.coinsnap.org/)
+- [Coinsnap Wallet](https://coinsnap.io/wallet/)
+- [Coinsnap API documentation](https://docs.coinsnap.io/)
+- [Coinsnap merchant account](https://app.coinsnap.io/register)
+- [Coinsnap website](https://coinsnap.io/)
+- [Telegram community and support](https://t.me/coinsnap)
 
-![Set Up Payment Configuration](https://resources.coinsnap.org/products/wix/images/screenshot12-Wix-Accept-Payments.png)
+> **Brand note:** Coinsnap is Bitcoin payment software for merchants and is not the provider of the similarly named coin identifier app "CoinSnap".
 
-13. **Connect Coinsnap as Payment Provider**
+## Frequently Asked Questions
 
-On the following page, you should see **Bitcoin/Lightning with Coinsnap** as a payment provider. If not, refresh the page to clear the Wix cache.
+### Does Wix support Bitcoin payments natively?
 
-Click **Connect** next to Coinsnap.
+No. The Coinsnap integration uses Wix's developer framework to add a custom Bitcoin payment provider to the Wix checkout.
 
-![Connect Coinsnap as Payment Provider](https://resources.coinsnap.org/products/wix/images/screenshot13-Wix-Payment-Methods.png)
+### Can customers pay with both Lightning and Bitcoin on-chain?
 
-14. **Enter Configuration Details**
+Yes. The Wix integration supports Bitcoin payments via both the Lightning Network and Bitcoin on-chain.
 
-You will be prompted to enter the following fields:
+### Can I use my own BTCPay Server?
 
-  - **API Key**
-  - **Store ID**
-  - **Webhook Secret**
+Yes. The current Wix integration supports BTCPay Server as an alternative payment-provider setup.
 
-![Enter Configuration Details](https://resources.coinsnap.org/products/wix/images/screenshot14-Coinsnap-Configuration-Settings.png)
+### Can I offer a Bitcoin discount?
 
-### Store ID and API Key
+Yes. Merchants can configure a fixed or percentage-based discount for Bitcoin payments.
 
-In your Wix store: paste that Store ID into the "**Store ID**" field and API key into the "**API Key**" field
+### Do I need my own Lightning node?
 
-![Store ID and API Key](https://resources.coinsnap.org/products/wix/images/screenshot14.1-StoreID-API-Key.png)
+No. When using Coinsnap, you do not need to operate your own Lightning node or Bitcoin payment server.
 
-### Webhook Secret
+### Which Bitcoin or Lightning wallets can I use?
 
-1. Go back to your Coinsnap store and "Create Webhook"
+You can use a compatible Bitcoin or Lightning wallet for settlement. One option is the [Coinsnap Wallet](https://coinsnap.io/wallet/).
 
-![Create Webhook](https://resources.coinsnap.org/products/wix/images/screenshot14.2-New-Webhook.png)
+Other compatible wallets may include solutions such as Wallet of Satoshi, Blink and Zeus, depending on the settlement setup you choose.
 
-2. **Payload URL**: Your Wix store URL where it can be reached combined with a callback path. E.g. `https://example.com/_functions/post_coinsnapWebhook` (replace example.com with your Wix store URL)
+### Does Coinsnap hold my Bitcoin?
 
-![Webhook Creation](https://resources.coinsnap.org/products/wix/images/screenshot14.3-Webhook-Creation.png)
+Coinsnap follows a non-custodial approach and does not hold merchant Bitcoin. Payments are settled to the merchant's configured wallet or payment destination.
 
-3. **Secret**: left this field empty and press the button "**Save Changes**".
+### Can I receive settlement in euros?
 
-![Webhook Secret](https://resources.coinsnap.org/products/wix/images/screenshot14.4-Webhook-Secret.png)
+Depending on the merchant setup and supported partner integrations, Bitcoin payments can also be converted and settled to a bank account.
 
-4. Find your webhook in webhooks list, press "Modify" button. Value for Secret field will be auto-generated by Coinsnap, you can see it by clicking on the "eye" icon. Copy the "**Secret**" and paste it into the "**Webhook Secret**" field in your Wix store e.g. 'YOURWEBHOOKSECRET' as shown in our example.
+### Do I need to write the Wix code myself?
 
-### Save the configuration
+No. You can follow the step-by-step setup and copy the provided source files, or use Coinsnap's free integration service.
 
-Back in your Wix store, click on "**Connect**" to save the configuration
+### Is the integration open source?
 
-More information:
+Yes. The source code is available in this repository under the MIT License.
 
-* Wix Shop Coinsnap Demo Site: https://wix.coinsnap.org/
-* Blog Article: https://coinsnap.io/en/coinsnap-for-wix/
-* GitHub: https://github.com/Coinsnap/Coinsnap-for-Wix 
+### Where can I get support?
 
-# Features: #
-
-* **All you need is your email and a Lightning Wallet with a Lightning address. [Here you can find an overview of suitable Lightning Wallets](https://coinsnap.io/en/lightning-wallet-with-lightning-address/)**
-
-* **Accept Bitcoin and Lightning payments** in your online store **without running your own technical infrastructure.** You do not need your own server, nor do you need to run your own Lightning Node. You also do not need a shop-system, for you can sell right out of your forms using the Coinsnap for Content Form 7-plugin.
-
-* **Quick and easy registration at Coinsnap**: Just enter your email address and your Lightning address – and you are ready to integrate the payment module and start selling for Bitcoin Lightning. You will find the necessary IDs and Keys in your Coinsnap account, too.
-
-* **100% protected privacy**:
-    * We do not collect personal data.
-    * For the registration you only need an e-mail address, which we will also use to inform you when you have received a payment.
-    * No other personal information is required as long as you request a withdrawal to a Lightning address or Bitcoin address.
-
-* **Only 1 % fees!**:
-    * No basic fee, no transaction fee, only 1% on the invoice amount with referrer code.
-    * Without referrer code the fee is 1.25%.
-    * Get a referrer code from our [partners](https://coinsnap.io/en/partner/) and customers and save 0.25% fee.
-
-* **No KYC needed**:
-    * Direct, P2P payments (instantly to your Lightning wallet)
-    * No intermediaries and paperwork
-    * Transaction information is only shared between you and your customer
-
-* **Sophisticated merchant’s admin dashboard in Coinsnap:**:
-    * See all your transactions at a glance
-    * Follow-up on individual payments
-    * See issues with payments
-    * Export reports
-
-* **A Bitcoin payment via Lightning offers significant advantages**:
-    * Lightning **payments are executed immediately.**
-    * Lightning **payments are credited directly to the recipient.**
-    * Lightning **payments are inexpensive.**
-    * Lightning **payments are guaranteed.** No chargeback risk for the merchant.
-    * Lightning **payments can be used worldwide.**
-    * Lightning **payments are perfect for micropayments.**
-
-* **Multilingual interface and support**: We speak your language
-
-
-# Documentation: #
-
-* [Coinsnap API (1.0) documentation](https://docs.coinsnap.io/)
-* [Frequently Asked Questions](https://coinsnap.io/en/faq/) 
-* [Terms and Conditions](https://coinsnap.io/en/general-terms-and-conditions/)
-* [Privacy Policy](https://coinsnap.io/en/privacy/)
+Use the support area in your Coinsnap merchant account or join the official [Coinsnap Telegram channel](https://t.me/coinsnap).
