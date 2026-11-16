@@ -162,9 +162,9 @@ Payment status reaches Wix as follows:
 
 Refunds are not issued through Wix: a refund started in Wix is declined. Refund the buyer from your Coinsnap account.
 
-### Upgrading from an earlier version
+### Upgrading to 1.2.0
 
-Earlier versions of this plugin did not verify webhooks securely: a forged request could mark an unpaid order as paid. If you installed the plugin before this version, update it now:
+Versions before 1.2.0 did not verify webhooks securely: a forged request could mark an unpaid order as paid. If you installed the plugin before 1.2.0, update it now:
 
 1. Add the `COINSNAP_API_KEY` secret described in installation step 5.
 2. Create `coinsnap.js` in the Backend section and replace `Coinsnap.js`, `Coinsnap-config.js` and the Coinsnap part of `http-functions.js` with the versions from this repository.
