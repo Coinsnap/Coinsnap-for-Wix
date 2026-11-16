@@ -1,94 +1,78 @@
 import wixPaymentProviderBackend from "wix-payment-provider-backend";
-import { ok, badRequest } from "wix-http-functions";
-import { createHmac, timingSafeEqual } from "crypto";
+import { ok, badRequest, serverError } from "wix-http-functions";
+import {
+  SECRET_API_KEY,
+  coinsnapRequest,
+  currencyExponent,
+  decimalToMinor,
+  readSecret,
+  safeEqual,
+  transactionTag,
+} from "backend/coinsnap";
 
+// Coinsnap invoice status -> Wix transaction event fields. An event without a
+// reasonCode is an approval, so only Settled may be sent without one.
+const EVENTS = {
+  Processing: { reasonCode: 5005 },
+  Settled: {},
+  Expired: { reasonCode: 3030, errorCode: "BUYER_CANCELED", errorMessage: "The Coinsnap invoice expired" },
+};
+
+function parseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+// Served at /_functions/post_coinsnapWebhook, the URL merchants already registered.
+// The request is only a hint that an invoice changed: anyone can send one, so every
+// fact acted on is read back from the Coinsnap API with the merchant's key.
 export async function use_post_coinsnapWebhook(request) {
-  const rawBody = await request.body.text();
-  const req = JSON.parse(rawBody);
+  const payload = parseJson(await request.body.text());
+  const invoiceId = payload?.invoiceId;
+  const storeId = payload?.metadata?.wixStoreId;
+  if (typeof invoiceId !== "string" || typeof storeId !== "string") return ok();
 
-  const validTypes = [
-    "Processing",
-    "Settled",
-    "Expired"
-  ];
-  if (!validTypes.includes(req.type)) {
-    return ok();
+  const apiKey = await readSecret(SECRET_API_KEY);
+  const response = await coinsnapRequest(
+    `api/v1/stores/${encodeURIComponent(storeId)}/invoices/${encodeURIComponent(invoiceId)}`,
+    apiKey,
+    { method: "get" },
+  );
+  if (response.status >= 500) {
+    console.error(`Coinsnap invoice ${invoiceId} could not be read: HTTP ${response.status}`);
+    return serverError();
   }
-
-  let secret = request.headers["x-coinsnap-sig"];
-  if (!secret || !secret.startsWith("sha256=")) {
-    console.warn("Invalid or missing signature header");
-    return badRequest();
-  }
-  else {
-     secret = secret.split("=")[1];
-  }
-
-  if (!checkSecretKey(req.metadata.wixAdditionalID, rawBody, secret)) {
+  if (response.status !== 200) {
+    console.warn(`Coinsnap webhook for unknown invoice ${invoiceId}: HTTP ${response.status}`);
     return badRequest();
   }
 
-  var trx = {
-    wixTransactionId: req.metadata.wixTransactionID,
-    pluginTransactionId: req.invoiceId,
-  };
+  const invoice = await response.json();
+  const metadata =
+    (typeof invoice.metadata === "string" ? parseJson(invoice.metadata) : invoice.metadata) ?? {};
+  const wixTransactionId = metadata.wixTransactionID;
+  const event = EVENTS[invoice.status];
+  if (!event || typeof wixTransactionId !== "string") return ok();
 
-  switch (req.type) {
-    case "Settled":
-      trx.reasonCode = 5009;
-      console.log('Transaction settled: '+ trx.wixTransactionId + ' / ' + trx.pluginTransactionId);
-      break;
-    case "Expired":
-      trx.reasonCode = 3035;
-      trx.errorCode = "Expired";
-      trx.errorMessage = "An invoice expired";
-      break;
+  const amountMinor = decimalToMinor(invoice.invoiceAmount, currencyExponent(invoice.currency));
+  const expectedTag =
+    amountMinor && transactionTag(apiKey, wixTransactionId, amountMinor, invoice.currency);
+  if (!expectedTag || !safeEqual(expectedTag, metadata.wixTag)) {
+    console.warn(`Coinsnap invoice ${invoice.id} does not match the Wix transaction it names`);
+    return badRequest();
   }
 
   await wixPaymentProviderBackend.submitEvent({
     event: {
-      transaction: trx,
+      transaction: {
+        wixTransactionId,
+        pluginTransactionId: invoice.id,
+        ...event,
+      },
     },
   });
   return ok();
-}
-
-function checkSecretKey(key, message, signature) {
-   
-  // Check parameters
-  if (!key || !message || !signature) {
-    console.warn("Invalid input: Missing key, message, or signature");
-    return false;
-  }
-
-  // Check parameters type
-  if (typeof key !== "string" || typeof message !== "string" || typeof signature !== "string") {
-    console.warn("Invalid input types");
-    return false;
-  }
-
-  // Create HMAC
-  const hmac = createHmac("sha256", key);
-  hmac.update(message);
-  
-  // Generate digest
-  const calculatedSignature = hmac.digest("hex");
-  
-  // Timing-safe comparison
-  const calculatedBuffer = Buffer.from(calculatedSignature);
-  const providedBuffer = Buffer.from(signature);
-  
-  // Check length first to prevent unnecessary timing-safe comparison
-  if (calculatedBuffer.length !== providedBuffer.length) {
-    console.warn("Check sums don't match");
-    return false;
-  }
-  
-  // Use timingSafeEqual for constant-time comparison
-  if(!timingSafeEqual(calculatedBuffer, providedBuffer)){
-    console.warn("Constant-time comparison is failed");
-    return false;
-  }
-  
-  return true;
 }

@@ -46,11 +46,12 @@ For Bitcoin settlement with Coinsnap, you can use a compatible Bitcoin or Lightn
 4. Create the Coinsnap service-plugin files.
 5. Copy the source code from this repository into the Wix code editor.
 6. Add the backend HTTP functions required for webhook handling.
-7. Publish the Wix changes.
-8. Connect Coinsnap under **Settings → Accept Payments**.
-9. Enter the required Store ID, API key and webhook secret.
-10. Configure BTCPay Server or the optional Bitcoin discount if required.
-11. Perform a test transaction before going live.
+7. Add your Coinsnap API key to the Wix **Secrets Manager**.
+8. Publish the Wix changes.
+9. Connect Coinsnap under **Settings → Accept Payments**.
+10. Enter the required Store ID and API key.
+11. Configure BTCPay Server or the optional Bitcoin discount if required.
+12. Perform a test transaction before going live.
 
 ## Coinsnap or BTCPay Server
 
@@ -98,9 +99,12 @@ The repository includes the code required for:
 
 - the Coinsnap payment provider
 - the provider configuration
+- a shared backend module, `coinsnap.js`
 - backend HTTP functions used for webhook handling
 
 Remove Wix example code before pasting the Coinsnap implementation.
+
+In the **Backend** section, create a file named `coinsnap.js` and paste the contents of `src/coinsnap.js` from this repository. Both the payment provider and the webhook import it.
 
 ### 4. Add backend HTTP functions
 
@@ -108,7 +112,17 @@ In the Wix backend section, create or open `http-functions.js`.
 
 Add the Coinsnap webhook code from this repository. If the file already contains other site functions, append the Coinsnap functions without removing your existing code.
 
-### 5. Publish the site
+### 5. Add your API key as a secret
+
+The webhook handler does not trust the notification it receives. It reads the invoice back from Coinsnap with your API key and acts only on what Coinsnap reports. Wix does not let the webhook read the values entered under **Accept Payments**, so the key has to be stored in the Wix **Secrets Manager** as well.
+
+In the Wix dashboard, open **Developer Tools → Secrets Manager** and add one secret:
+
+| Secret name | Value |
+|---|---|
+| `COINSNAP_API_KEY` | Your Coinsnap API key, the same one you enter under **Accept Payments** |
+
+### 6. Publish the site
 
 Publish the Wix site so the custom payment provider becomes available in the dashboard.
 
@@ -122,8 +136,9 @@ In the Wix dashboard:
 4. Enter your:
    - **Store ID**
    - **API key**
-   - **Webhook secret**
 5. Save the configuration.
+
+Connecting fails if the `COINSNAP_API_KEY` secret from step 5 of the installation is missing or differs from the API key entered here. If you change your API key later, update both.
 
 Your Coinsnap Store ID and API key are available in your Coinsnap merchant account.
 
@@ -137,7 +152,25 @@ A typical callback URL follows this pattern:
 
 Replace `example.com` with your Wix domain.
 
-Copy the generated webhook secret into the corresponding Wix Coinsnap configuration field.
+The webhook secret Coinsnap generates is not needed for Wix: the plugin verifies every notification by reading the invoice from Coinsnap instead.
+
+Payment status reaches Wix as follows:
+
+- **Processing** (payment seen, waiting for confirmation): the order stays pending.
+- **Settled**: the order is marked paid.
+- **Expired**: the payment is marked as canceled.
+
+Refunds are not issued through Wix: a refund started in Wix is declined. Refund the buyer from your Coinsnap account.
+
+### Upgrading from an earlier version
+
+Earlier versions of this plugin did not verify webhooks securely: a forged request could mark an unpaid order as paid. If you installed the plugin before this version, update it now:
+
+1. Add the `COINSNAP_API_KEY` secret described in installation step 5.
+2. Create `coinsnap.js` in the Backend section and replace `Coinsnap.js`, `Coinsnap-config.js` and the Coinsnap part of `http-functions.js` with the versions from this repository.
+3. Publish the site, then reconnect Coinsnap under **Settings → Accept Payments**.
+
+The webhook URL does not change.
 
 ## Free integration service
 

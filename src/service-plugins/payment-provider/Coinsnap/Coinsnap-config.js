@@ -32,12 +32,6 @@ export function getConfig() {
                     label: "API Key",
                 },
             },
-            {
-                simpleField: {
-                    name: "webhookSecret",
-                    label: "Webhook Secret",
-                },
-            },
         ],
     };
 }

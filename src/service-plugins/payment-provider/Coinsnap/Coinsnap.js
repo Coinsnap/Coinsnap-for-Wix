@@ -1,6 +1,12 @@
-import { orders } from "wix-ecom-backend";
-import { elevate } from "wix-auth";
-import { fetch } from 'wix-fetch';
+import {
+  SECRET_API_KEY,
+  coinsnapRequest,
+  currencyExponent,
+  minorToDecimal,
+  readSecret,
+  safeEqual,
+  transactionTag,
+} from "backend/coinsnap";
 
 /**
  * This payment plugin endpoint is triggered when a merchant provides required data to connect their PSP account to a Wix site.
@@ -10,32 +16,34 @@ import { fetch } from 'wix-fetch';
  * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').ConnectAccountResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
  */
 export const connectAccount = async (options, context) => {
-  let sUrl = "https://app.coinsnap.io/";
-  let returnObj = {
+  const { storeId, apiKey } = options.credentials;
+  const failure = (errorCode, errorMessage) => ({
     credentials: options.credentials,
-  };
-  const response = await fetch(
-    sUrl + "api/v1/stores/" + options.credentials.storeId,
-    {
-        method: "get",
-        headers: {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'x-api-key': options.credentials.apiKey
-        },
-    },
-  );
+    errorCode,
+    errorMessage,
+    reasonCode: 1002,
+  });
 
-  if (response.status === 200) {
-    returnObj.accountId = "myId";
-    returnObj.accountName = "CoinsnapAccount";
+  // The webhook reads the key from the Secrets Manager, so a missing or different
+  // one would only show up as orders that never get marked paid.
+  try {
+    const secretApiKey = await readSecret(SECRET_API_KEY);
+    if (!safeEqual(secretApiKey, apiKey)) {
+      return failure("API_KEY_MISMATCH", `${SECRET_API_KEY} does not match the API key entered here`);
+    }
+  } catch (error) {
+    return failure("SECRETS_MISSING", error.message);
   }
-  else {
-    returnObj.errorCode = response.status;
-    returnObj.errorMessage = "Error during connection with Coinsnap";
-    returnObj.reasonCode = 1002;
+
+  const response = await coinsnapRequest(`api/v1/stores/${storeId}`, apiKey, { method: "get" });
+  if (response.status !== 200) {
+    return failure(response.status, "Error during connection with Coinsnap");
   }
-  return returnObj;
+  return {
+    credentials: options.credentials,
+    accountId: storeId,
+    accountName: "Coinsnap",
+  };
 };
 
 /**
@@ -46,66 +54,57 @@ export const connectAccount = async (options, context) => {
  * @returns {Promise<import('interfaces-psp-v1-payment-service-provider').CreateTransactionResponse | import('interfaces-psp-v1-payment-service-provider').BusinessError>}
  */
 export const createTransaction = async (options, context) => {
-    let sUrl = "https://app.coinsnap.io/";
+  const { description, returnUrls, _id: orderId } = options.order;
+  const { storeId, apiKey } = options.merchantCredentials;
+  const currency = String(description.currency).toUpperCase();
+  const amountMinor = String(BigInt(description.totalAmount));
+  const billing = description.billingAddress ?? {};
+  const exponent = currencyExponent(currency);
+  if (exponent === null) {
+    return { errorCode: "UNSUPPORTED_CURRENCY", errorMessage: `Unsupported currency ${currency}`, reasonCode: 2001 };
+  }
 
-    const invoice = {
-        currency: options.order.description.currency,
-        amount: parseInt(options.order.description.totalAmount) / Math.pow(10, currencies[options.order.description.currency]),
-        redirectUrl: options.order.returnUrls.successUrl,
-        orderId: options.order._id,
-        buyerEmail: options.order.description.billingAddress.email,
-        referralCode: 'D19987',
-        metadata: {
-            customerName: options.order.description.billingAddress.firstName + " " + options.order.description.billingAddress.lastName,
-            orderNumber: options.order._id,
-            wixTransactionID: options.wixTransactionId,
-            wixAdditionalID: options.merchantCredentials.webhookSecret,
-            currency: options.order.description.currency
-        },
-    };
+  const invoice = {
+    currency,
+    amount: Number(minorToDecimal(amountMinor, exponent)),
+    redirectUrl: returnUrls.successUrl,
+    orderId,
+    buyerEmail: billing.email,
+    referralCode: "D19987",
+    metadata: {
+      customerName: [billing.firstName, billing.lastName].filter(Boolean).join(" "),
+      orderNumber: orderId,
+      wixTransactionID: options.wixTransactionId,
+      wixStoreId: storeId,
+      wixTag: transactionTag(apiKey, options.wixTransactionId, amountMinor, currency),
+      currency,
+    },
+  };
 
-    const response = await fetch(
-        sUrl + "api/v1/stores/" + options.merchantCredentials.storeId + "/invoices",
-        {
-            method: "post",
-            headers: {
-                'accept': 'application/json',
-                'content-type': 'application/json',
-                'x-api-key': options.merchantCredentials.apiKey
-            },
-            body: JSON.stringify(invoice),
-        },
-    );
+  const response = await coinsnapRequest(`api/v1/stores/${storeId}/invoices`, apiKey, {
+    method: "post",
+    body: JSON.stringify(invoice),
+  });
 
-    if (response.status == 200) {
-        const json = await response.json();
-        return {
-          pluginTransactionId: json.id,
-          redirectUrl: json.checkoutLink,
-        };
-  } else {
+  if (response.status !== 200) {
     return {
       errorCode: response.status,
       errorMessage: "Error Coinsnap payment",
       reasonCode: 2001,
     };
   }
+  const json = await response.json();
+  return {
+    pluginTransactionId: json.id,
+    redirectUrl: json.checkoutLink,
+  };
 };
 
-export const refundTransaction = async (options, context) => {  
-  try {
-    let refundSession = '';
-    return refundSession;
-  } catch (error) {
-    return error;
-  }
-};
-
-const currencies = {
-  JPY: 0,
-  EUR: 2,
-  CHF: 2,
-  CAD: 2,
-  GBP: 2,
-  USD: 2,
-};
+// Refunds are not supported through Wix; the merchant refunds from Coinsnap.
+// Shaped like Wix's failed-refund example, which carries a pluginRefundId.
+export const refundTransaction = async (options, context) => ({
+  pluginRefundId: `coinsnap-refund-unsupported-${options.wixRefundId}`,
+  reasonCode: 3025,
+  errorCode: "REFUND_NOT_SUPPORTED",
+  errorMessage: "Refunds for Bitcoin payments are handled in your Coinsnap account.",
+});
