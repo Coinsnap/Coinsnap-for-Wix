@@ -1,94 +1,127 @@
 import wixPaymentProviderBackend from "wix-payment-provider-backend";
-import { ok, badRequest } from "wix-http-functions";
-import { createHmac, timingSafeEqual } from "crypto";
+import { ok, response } from "wix-http-functions";
+import {
+  EVENTS,
+  SECRET_API_KEY,
+  SECRET_WEBHOOK,
+  coinsnapRequest,
+  decidePayment,
+  logWebhook,
+  readSecret,
+  records,
+  signatureProblem,
+} from "backend/coinsnap";
 
-export async function use_post_coinsnapWebhook(request) {
-  const rawBody = await request.body.text();
-  const req = JSON.parse(rawBody);
+const status = (code) => response({ status: code, headers: { "Content-Type": "text/plain" }, body: "" });
+const unauthorized = () => response({ status: 401, headers: { "Content-Type": "text/plain" }, body: "Unauthorized" });
+const retryLater = () => status(503);
 
-  const validTypes = [
-    "Processing",
-    "Settled",
-    "Expired"
-  ];
-  if (!validTypes.includes(req.type)) {
-    return ok();
+function parseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
-
-  let secret = request.headers["x-coinsnap-sig"];
-  if (!secret || !secret.startsWith("sha256=")) {
-    console.warn("Invalid or missing signature header");
-    return badRequest();
-  }
-  else {
-     secret = secret.split("=")[1];
-  }
-
-  if (!checkSecretKey(req.metadata.wixAdditionalID, rawBody, secret)) {
-    return badRequest();
-  }
-
-  var trx = {
-    wixTransactionId: req.metadata.wixTransactionID,
-    pluginTransactionId: req.invoiceId,
-  };
-
-  switch (req.type) {
-    case "Settled":
-      trx.reasonCode = 5009;
-      console.log('Transaction settled: '+ trx.wixTransactionId + ' / ' + trx.pluginTransactionId);
-      break;
-    case "Expired":
-      trx.reasonCode = 3035;
-      trx.errorCode = "Expired";
-      trx.errorMessage = "An invoice expired";
-      break;
-  }
-
-  await wixPaymentProviderBackend.submitEvent({
-    event: {
-      transaction: trx,
-    },
-  });
-  return ok();
 }
 
-function checkSecretKey(key, message, signature) {
-   
-  // Check parameters
-  if (!key || !message || !signature) {
-    console.warn("Invalid input: Missing key, message, or signature");
-    return false;
+async function submit(wixTransactionId, invoiceId, event) {
+  await wixPaymentProviderBackend.submitEvent({
+    event: { transaction: { wixTransactionId, pluginTransactionId: invoiceId, ...event } },
+  });
+}
+
+// Served at /_functions/post_coinsnapWebhook, the URL merchants already registered.
+// The body is only a hint that an invoice changed: after the signature check, only
+// invoiceId is read from it, and every fact acted on comes from the Coinsnap API and
+// from the record createTransaction stored.
+export async function use_post_coinsnapWebhook(request) {
+  const rawBody = await request.body.text();
+
+  // 1. Signature over the raw body, before anything else.
+  let secret = "";
+  try {
+    secret = await readSecret(SECRET_WEBHOOK);
+  } catch {
+    secret = "";
+  }
+  const problem = signatureProblem(request.headers?.["x-coinsnap-signature"], rawBody, secret);
+  if (problem) {
+    logWebhook("security", problem);
+    return unauthorized();
   }
 
-  // Check parameters type
-  if (typeof key !== "string" || typeof message !== "string" || typeof signature !== "string") {
-    console.warn("Invalid input types");
-    return false;
-  }
+  // 2. Only the invoice ID from the body.
+  const payload = parseJson(rawBody);
+  const invoiceId = typeof payload?.invoiceId === "string" ? payload.invoiceId : "";
+  if (!invoiceId) return ok();
+  const claimsPaid = payload?.type === "Settled";
 
-  // Create HMAC
-  const hmac = createHmac("sha256", key);
-  hmac.update(message);
-  
-  // Generate digest
-  const calculatedSignature = hmac.digest("hex");
-  
-  // Timing-safe comparison
-  const calculatedBuffer = Buffer.from(calculatedSignature);
-  const providedBuffer = Buffer.from(signature);
-  
-  // Check length first to prevent unnecessary timing-safe comparison
-  if (calculatedBuffer.length !== providedBuffer.length) {
-    console.warn("Check sums don't match");
-    return false;
+  try {
+    // 3. Our own record of this invoice: store, Wix transaction, amount, currency.
+    const record = await records.get(records.invoiceKey(invoiceId));
+    if (!record) {
+      // Dashboard test webhooks and other plugins' invoices end here.
+      logWebhook("info", "not ours", invoiceId);
+      return ok();
+    }
+
+    // 4. The invoice as Coinsnap reports it.
+    const apiKey = await readSecret(SECRET_API_KEY);
+    const api = await coinsnapRequest(
+      `api/v1/stores/${encodeURIComponent(record.storeId)}/invoices/${encodeURIComponent(invoiceId)}`,
+      apiKey,
+      { method: "get" },
+    );
+    if (api.status >= 500) {
+      logWebhook("info", "retry: API unavailable", invoiceId);
+      return retryLater();
+    }
+    if (api.status !== 200) {
+      logWebhook("info", "unknown invoice", invoiceId);
+      return ok();
+    }
+    const invoice = await api.json();
+
+    // 5. Decide, then act once.
+    const decision = decidePayment(invoice, record, apiKey);
+    const paidKey = records.paidKey(record.wixTransactionId);
+
+    if (decision.action === "approve") {
+      const first = await records.insertOnce({ _id: paidKey, invoiceId, wixTransactionId: record.wixTransactionId });
+      if (!first) {
+        const paid = await records.get(paidKey);
+        // Another invoice of the same transaction paid it first: the buyer paid twice
+        // and the merchant refunds one from Coinsnap. The order itself does not change.
+        logWebhook("info", paid?.invoiceId === invoiceId ? "already processed" : "paid twice", invoiceId);
+        return ok();
+      }
+      try {
+        await submit(record.wixTransactionId, invoiceId, EVENTS.Settled);
+      } catch (error) {
+        await records.remove(paidKey); // let Coinsnap's retry try again
+        throw error;
+      }
+      logWebhook("info", "settled", invoiceId);
+      return ok();
+    }
+
+    if (decision.action === "pending" || decision.action === "cancel") {
+      // A paid transaction never moves back, e.g. when a second invoice expires.
+      if (await records.get(paidKey)) {
+        logWebhook("info", "already processed", invoiceId);
+        return ok();
+      }
+      await submit(record.wixTransactionId, invoiceId, decision.action === "pending" ? EVENTS.Processing : EVENTS.Expired);
+      logWebhook("info", decision.reason, invoiceId);
+      return ok();
+    }
+
+    const forged = claimsPaid && decision.reason !== "not ours";
+    logWebhook(forged ? "security" : "info", forged ? "forged status" : decision.reason, invoiceId);
+    return ok();
+  } catch {
+    // API unreachable, secret or collection unavailable, or Wix refused the event.
+    logWebhook("info", "retry: processing failed", invoiceId);
+    return retryLater();
   }
-  
-  // Use timingSafeEqual for constant-time comparison
-  if(!timingSafeEqual(calculatedBuffer, providedBuffer)){
-    console.warn("Constant-time comparison is failed");
-    return false;
-  }
-  
-  return true;
 }
