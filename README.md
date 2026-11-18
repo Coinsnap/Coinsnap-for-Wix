@@ -46,12 +46,13 @@ For Bitcoin settlement with Coinsnap, you can use a compatible Bitcoin or Lightn
 4. Create the Coinsnap service-plugin files.
 5. Copy the source code from this repository into the Wix code editor.
 6. Add the backend HTTP functions required for webhook handling.
-7. Add your Coinsnap API key to the Wix **Secrets Manager**.
-8. Publish the Wix changes.
-9. Connect Coinsnap under **Settings → Accept Payments**.
-10. Enter the required Store ID and API key.
-11. Configure BTCPay Server or the optional Bitcoin discount if required.
-12. Perform a test transaction before going live.
+7. Create the webhook in Coinsnap, and add your Coinsnap API key and the webhook secret to the Wix **Secrets Manager**.
+8. Create the `CoinsnapInvoices` CMS collection.
+9. Publish the Wix changes.
+10. Connect Coinsnap under **Settings → Accept Payments**.
+11. Enter the required Store ID and API key.
+12. Configure BTCPay Server or the optional Bitcoin discount if required.
+13. Perform a test transaction before going live.
 
 ## Coinsnap or BTCPay Server
 
@@ -112,17 +113,28 @@ In the Wix backend section, create or open `http-functions.js`.
 
 Add the Coinsnap webhook code from this repository. If the file already contains other site functions, append the Coinsnap functions without removing your existing code.
 
-### 5. Add your API key as a secret
+### 5. Create the webhook and add the secrets
 
-The webhook handler does not trust the notification it receives. It reads the invoice back from Coinsnap with your API key and acts only on what Coinsnap reports. Wix does not let the webhook read the values entered under **Accept Payments**, so the key has to be stored in the Wix **Secrets Manager** as well.
+The webhook handler does not trust the notification it receives. It checks the notification's signature with the webhook secret, then reads the invoice back from Coinsnap with your API key and acts only on what Coinsnap reports. Wix does not let the webhook read the values entered under **Accept Payments**, so both are stored in the Wix **Secrets Manager**.
 
-In the Wix dashboard, open **Developer Tools → Secrets Manager** and add one secret:
+First create the webhook in your Coinsnap merchant account (see [Webhook setup](#webhook-setup)) and copy the secret Coinsnap shows for it.
+
+Then, in the Wix dashboard, open **Developer Tools → Secrets Manager** and add two secrets:
 
 | Secret name | Value |
 |---|---|
 | `COINSNAP_API_KEY` | Your Coinsnap API key, the same one you enter under **Accept Payments** |
+| `COINSNAP_WEBHOOK_SECRET` | The secret of the webhook you created in Coinsnap |
 
-### 6. Publish the site
+Never paste either value into page code, a CMS collection or a site setting that visitors can read.
+
+### 6. Create the CoinsnapInvoices collection
+
+The plugin records every invoice it creates (which Wix transaction it pays, and the amount and currency), and every transaction it has marked paid. The webhook decides from these records, so an order is marked paid only once, and a paid order never goes back to canceled.
+
+In the CMS, create a collection with the ID `CoinsnapInvoices`. You do not need to add fields; the plugin adds them. Set its permissions so that only **Admin** can read, create, update and delete content. Site visitors and members must have no access.
+
+### 7. Publish the site
 
 Publish the Wix site so the custom payment provider becomes available in the dashboard.
 
@@ -138,7 +150,7 @@ In the Wix dashboard:
    - **API key**
 5. Save the configuration.
 
-Connecting fails if the `COINSNAP_API_KEY` secret from step 5 of the installation is missing or differs from the API key entered here. If you change your API key later, update both.
+Connecting fails if a secret from step 5 of the installation is missing, if `COINSNAP_API_KEY` differs from the API key entered here, or if the `CoinsnapInvoices` collection from step 6 is missing. If you change your API key later, update both, and only once no invoice created with the old key is still open: orders from those invoices would not be marked paid automatically.
 
 Your Coinsnap Store ID and API key are available in your Coinsnap merchant account.
 
@@ -152,7 +164,7 @@ A typical callback URL follows this pattern:
 
 Replace `example.com` with your Wix domain.
 
-The webhook secret Coinsnap generates is not needed for Wix: the plugin verifies every notification by reading the invoice from Coinsnap instead.
+Copy the webhook secret Coinsnap generates into the `COINSNAP_WEBHOOK_SECRET` secret (installation step 5). Notifications without a valid, current signature are refused. If you create a new webhook or a new secret in Coinsnap, update the Wix secret too.
 
 Payment status reaches Wix as follows:
 
@@ -164,13 +176,15 @@ Refunds are not issued through Wix: a refund started in Wix is declined. Refund 
 
 ### Upgrading to 1.2.0
 
-Versions before 1.2.0 did not verify webhooks securely: a forged request could mark an unpaid order as paid. If you installed the plugin before 1.2.0, update it now:
+Versions before 1.2.0 did not verify webhooks securely: a forged request could mark an unpaid order as paid. Older versions also sent the webhook secret inside every invoice. If you installed the plugin before 1.2.0, update it now:
 
-1. Add the `COINSNAP_API_KEY` secret described in installation step 5.
-2. Create `coinsnap.js` in the Backend section and replace `Coinsnap.js`, `Coinsnap-config.js` and the Coinsnap part of `http-functions.js` with the versions from this repository.
-3. Publish the site, then reconnect Coinsnap under **Settings → Accept Payments**.
+1. In your Coinsnap account, delete the existing Wix webhook and create a new one with the same URL, so the old secret stops working.
+2. Add the `COINSNAP_API_KEY` and `COINSNAP_WEBHOOK_SECRET` secrets described in installation step 5.
+3. Create the `CoinsnapInvoices` collection described in installation step 6.
+4. Create `coinsnap.js` in the Backend section and replace `Coinsnap.js`, `Coinsnap-config.js` and the Coinsnap part of `http-functions.js` with the versions from this repository.
+5. Publish the site, then reconnect Coinsnap under **Settings → Accept Payments**.
 
-The webhook URL does not change.
+The webhook URL does not change. Invoices that were still open when you updated have no record yet, so they are not marked paid automatically: check them in your Coinsnap account and update those orders by hand.
 
 ## Free integration service
 

@@ -1,0 +1,9 @@
+{
+  "name": "coinsnap-for-wix",
+  "private": true,
+  "type": "module",
+  "description": "Development only: runs the unit tests. The Wix site uses the files in src/ directly.",
+  "scripts": {
+    "test": "node --import ./test/register.mjs --test test/*.test.mjs"
+  }
+}
