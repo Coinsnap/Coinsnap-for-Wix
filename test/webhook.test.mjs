@@ -276,3 +276,85 @@ test("logs never contain secrets, signature headers, the store ID or customer da
   assert.ok(logs.length >= 4);
   for (const s of [SECRET, API_KEY, STORE, "buyer@example.com", "Ann", "v1=", "<script>"]) assert.ok(!all.includes(s), s);
 });
+
+// --- invoice request: orderId and order metadata -----------------------------
+
+test("checkout sends the Wix order ID, buyer details and line items to Coinsnap", async () => {
+  let sent;
+  state.fetch = (url, init) => {
+    if (/\/invoices$/.test(url)) sent = JSON.parse(init.body);
+    return fakeApi(url, init);
+  };
+  const { pluginTransactionId: id } = await createTransaction(
+    {
+      wixTransactionId: TX,
+      order: {
+        _id: "order-1",
+        returnUrls: { successUrl: "https://shop.example/thank-you" },
+        description: {
+          currency: "EUR",
+          totalAmount: "2599",
+          items: [
+            { _id: "item-a", name: "Camera", quantity: 1, price: "1999", description: "Portable camera", category: "PHYSICAL" },
+            { _id: "item-b", name: "Strap", quantity: 2, price: "250" },
+          ],
+          charges: { tax: "300", shipping: "100", discount: "0" },
+          billingAddress: {
+            email: "buyer@example.com", firstName: "Ann", lastName: "Buyer", company: "ACME", phone: "+49 30 1234",
+            street: "Main St", houseNumber: "1", city: "Berlin", zipCode: "10115", state: "BE", countryCode: "DE",
+          },
+          shippingAddress: { firstName: "Bob", lastName: "Receiver", address: "Side St 2", city: "Hamburg", zipCode: "20095", countryCode: "DE" },
+          buyerInfo: { buyerId: "buyer-guid", buyerLanguage: "de" },
+        },
+      },
+      merchantCredentials: { storeId: STORE, apiKey: API_KEY },
+    },
+    {},
+  );
+  assert.equal(sent.orderId, "order-1");
+  assert.equal(sent.buyerEmail, "buyer@example.com");
+  const m = sent.metadata;
+  assert.equal(m.orderId, "order-1");
+  assert.equal(m.orderNumber, "order-1");
+  assert.equal(m.platform, "wix");
+  assert.equal(m.customerName, "Ann Buyer");
+  assert.equal(m.buyerName, "Ann Buyer");
+  assert.equal(m.buyerEmail, "buyer@example.com");
+  assert.equal(m.buyerPhone, "+49 30 1234");
+  assert.equal(m.buyerCompany, "ACME");
+  assert.equal(m.buyerAddress1, "Main St 1");
+  assert.deepEqual([m.buyerCity, m.buyerZip, m.buyerState, m.buyerCountry], ["Berlin", "10115", "BE", "DE"]);
+  assert.deepEqual(m.shippingAddress, { name: "Bob Receiver", address1: "Side St 2", city: "Hamburg", zip: "20095", country: "DE" });
+  assert.equal(m.buyerId, "buyer-guid");
+  assert.equal(m.language, "de");
+  assert.deepEqual(m.lineItems, [
+    { name: "Camera", productId: "item-a", quantity: 1, price: "19.99", total: "19.99", description: "Portable camera", category: "PHYSICAL" },
+    { name: "Strap", productId: "item-b", quantity: 2, price: "2.50", total: "5.00" },
+  ]);
+  assert.equal(m.itemDesc, "1x Camera, 2x Strap");
+  assert.deepEqual([m.taxTotal, m.shippingTotal, m.discountTotal], ["3.00", "1.00", "0.00"]);
+  assert.equal(m.itemCode, undefined, "itemCode only for a single product");
+  for (const v of Object.values(m)) assert.ok(v !== "" && v !== null && v !== undefined);
+  // The keys the webhook checks are unchanged, and the invoice still approves the transaction.
+  assert.equal(m.wixTransactionID, TX);
+  assert.equal(m.wixTag, transactionTag(API_KEY, TX, "2599", "EUR"));
+  assert.equal(m.currency, "EUR");
+  settle(id);
+  const res = await use_post_coinsnapWebhook(request({ type: "Settled", invoiceId: id }));
+  assert.equal(res.status, 200);
+  assert.equal(state.events.length, 1);
+  for (const pii of ["buyer@example.com", "Ann Buyer", "Main St", "+49 30"]) assert.ok(!logs.join("\n").includes(pii), `${pii} not logged`);
+});
+
+test("order details cannot override the keys the webhook matches on", async () => {
+  let sent;
+  state.fetch = (url, init) => {
+    if (/\/invoices$/.test(url)) sent = JSON.parse(init.body);
+    return fakeApi(url, init);
+  };
+  await checkout();
+  assert.equal(sent.metadata.orderNumber, "order-1");
+  assert.equal(sent.metadata.wixTransactionID, TX);
+  assert.equal(sent.metadata.customerName, "Ann Buyer");
+  assert.equal(sent.metadata.lineItems, undefined, "no items, no empty array");
+});
